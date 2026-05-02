@@ -1,0 +1,644 @@
+openapi: 3.0.3
+info:
+  title: JobHub API
+  description: API для управления пользователями, исполнителями, администраторами и супер-админами. Поддерживает JWT аутентификацию и ролевой доступ.
+  version: 1.2.0
+servers:
+  - url: http://localhost:7000
+    description: Local development server
+
+tags:
+  - name: System
+    description: Системные эндпоинты и проверка доступности API
+  - name: User
+    description: Управление профилем пользователя
+  - name: Worker
+    description: Управление профилем и навыками исполнителя
+  - name: Admin
+    description: Функции администратора (модерация, навыки)
+  - name: SuperAdmin
+    description: Управление ролями пользователей и доступами
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      example:
+        error: invalid token
+
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      example:
+        message: operation successful
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "a3c9f5d2-bb6a-4c13-8ed0-8e3a1b5e9f92"
+        email:
+          type: string
+          example: "user@example.com"
+        phone:
+          type: string
+          example: "+1234567890"
+        full_name:
+          type: string
+          example: "Иван Иванов"
+        role:
+          type: string
+          enum: [user, contractor, admin, superadmin]
+          example: "user"
+        is_banned:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          example: "newmail@example.com"
+        phone:
+          type: string
+          example: "+79001112233"
+        full_name:
+          type: string
+          example: "Новый Имя"
+
+    CreateUserProfileRequest:
+      type: object
+      required: [email, full_name]
+      properties:
+        email:
+          type: string
+          example: "user@example.com"
+        phone:
+          type: string
+          example: "+79001234567"
+        full_name:
+          type: string
+          example: "Иван Иванов"
+
+    ChangeRoleRequest:
+      type: object
+      required: [user_id, role]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          example: "a3c9f5d2-bb6a-4c13-8ed0-8e3a1b5e9f92"
+        role:
+          type: string
+          enum: [user, contractor, admin, superadmin]
+          example: "admin"
+
+    Skill:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3
+        name:
+          type: string
+          example: "Plumbing"
+
+    WorkerProfile:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        description:
+          type: string
+          example: "Опытный строитель"
+        experience_years:
+          type: integer
+          example: 5
+        skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/Skill'
+
+security:
+  - bearerAuth: []
+
+paths:
+  /:
+    get:
+      tags: [System]
+      summary: Проверка работы API
+      responses:
+        '200':
+          description: API is running
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  message: API is running
+
+  /validate-token:
+    get:
+      tags: [System]
+      summary: Проверка валидности JWT токена
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Валидный токен
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  valid: true
+                  user_id: "b8c2f0a9-16b3-4b5d-9b8d-0a7f0a9e8a1a"
+                  role: "admin"
+        '401':
+          description: Ошибка аутентификации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/profile:
+    get:
+      tags: [User]
+      summary: Получить профиль пользователя
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Профиль пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Неавторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [User]
+      summary: Создать профиль пользователя
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserProfileRequest'
+      responses:
+        '201':
+          description: Профиль создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    put:
+      tags: [User]
+      summary: Обновить профиль пользователя
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Профиль обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /worker/profile:
+    get:
+      tags: [Worker]
+      summary: Получить профиль исполнителя
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Профиль исполнителя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerProfile'
+        '404':
+          description: Профиль не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [Worker]
+      summary: Создать профиль исполнителя
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkerProfile'
+      responses:
+        '201':
+          description: Профиль создан
+    put:
+      tags: [Worker]
+      summary: Обновить профиль исполнителя
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                specialty:
+                  type: string
+                  example: "Plumbing"
+                skills:
+                  type: array
+                  items:
+                    type: string
+                  example: ["1", "3", "4"]
+      responses:
+        '200':
+          description: Профиль обновлён
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  specialty:
+                    type: string
+                  skills:
+                    type: array
+                    items:
+                      type: string
+    delete:
+      tags: [Worker]
+      summary: Удалить профиль исполнителя
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Профиль удалён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+
+  /worker/skills:
+    get:
+      tags: [Worker]
+      summary: Получить навыки исполнителя
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Навыки исполнителя
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Skill'
+    post:
+      tags: [Worker]
+      summary: Добавить навыки исполнителю
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                skill_ids:
+                  type: array
+                  items:
+                    type: integer
+              example:
+                skill_ids: [1, 3, 4]
+      responses:
+        '200':
+          description: Навыки добавлены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+    delete:
+      tags: [Worker]
+      summary: Удалить навыки исполнителя
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                skill_ids:
+                  type: array
+                  items:
+                    type: integer
+              example:
+                skill_ids: [2, 5]
+      responses:
+        '200':
+          description: Навыки удалены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: Получить список пользователей
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список пользователей
+        '403':
+          description: Доступ запрещён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/skills:
+    post:
+      tags: [Admin]
+      summary: Создать новый навык
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+              example:
+                name: "Carpentry"
+      responses:
+        '201':
+          description: Навык создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Skill'
+  /admin/assign-worker:
+    put:
+      tags: [Admin]
+      summary: Назначить пользователя исполнителем
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+              example:
+                user_id: "a3c9f5d2-bb6a-4c13-8ed0-8e3a1b5e9f92"
+      responses:
+        '200':
+          description: Роль пользователя успешно изменена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/ban:
+    put:
+      tags: [Admin]
+      summary: Забанить пользователя
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+              example:
+                user_id: "a3c9f5d2-bb6a-4c13-8ed0-8e3a1b5e9f92"
+      responses:
+        '200':
+          description: Пользователь забанен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/unban:
+    put:
+      tags: [Admin]
+      summary: Разбанить пользователя
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+              example:
+                user_id: "a3c9f5d2-bb6a-4c13-8ed0-8e3a1b5e9f92"
+      responses:
+        '200':
+          description: Пользователь разбанен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/worker:
+    delete:
+      tags: [Admin]
+      summary: Удалить исполнителя
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+              example:
+                user_id: "a3c9f5d2-bb6a-4c13-8ed0-8e3a1b5e9f92"
+      responses:
+        '200':
+          description: Исполнитель удалён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+  /superadmin/change-role:
+    put:
+      tags: [SuperAdmin]
+      summary: Изменить роль пользователя
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeRoleRequest'
+      responses:
+        '200':
+          description: Роль изменена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+  /superadmin/create:
+    post:
+      tags: [ SuperAdmin ]
+      summary: Создать нового администратора
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: Администратор создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  /superadmin/delete:
+    delete:
+      tags: [ SuperAdmin ]
+      summary: Удалить администратора
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ user_id ]
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Администратор удалён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /superadmin/list:
+    get:
+      tags: [ SuperAdmin ]
+      summary: Получить список администраторов
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список администраторов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'

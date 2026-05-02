@@ -1,0 +1,263 @@
+/* Общий контейнер страницы */
+.worker-panel {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  font-family: 'Inter', sans-serif;
+  background-color: #f9f9f9;
+  min-height: 100vh;
+}
+
+/* Заголовки */
+.worker-panel h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.worker-panel h3 {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+/* Карточка профиля */
+.worker-profile-card {
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #c6f6d5; /* зеленоватый для профиля */
+  background-color: #f0fff4;
+}
+
+.worker-profile-card strong {
+  font-weight: 600;
+}
+
+.worker-profile-card .skills-list {
+  margin-top: 0.25rem;
+}
+
+/* Секция заявок */
+.requests-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+/* Карточка заявки */
+.request-card-wrapper {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.request-card-wrapper:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Недоступные заявки */
+.request-card-wrapper.opacity-50 {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Кнопки */
+.worker-panel button {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.worker-panel button.bg-blue-600 {
+  background-color: #2563eb;
+  color: #fff;
+}
+
+.worker-panel button.bg-blue-600:hover {
+  background-color: #1d4ed8;
+}
+
+.worker-panel button.bg-gray-400 {
+  background-color: #9ca3af;
+  color: #fff;
+  cursor: not-allowed;
+}
+
+/* Сообщения о загрузке и пустом состоянии */
+.text-gray-500 {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+  .request-card-wrapper {
+    flex-direction: column;
+  }
+}
+
+
+/* ===== ФОРМА СОЗДАНИЯ / РЕДАКТИРОВАНИЯ ПРОФИЛЯ ===== */
+.create-profile-form,
+.add-skills-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.create-profile-form input,
+.add-skills-form input,
+.create-profile-form select,
+.add-skills-form select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.create-profile-form input:focus,
+.add-skills-form input:focus,
+.create-profile-form select:focus,
+.add-skills-form select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Ряд кнопок формы */
+.btn-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* Основные кнопки */
+.btn-green {
+  background-color: #16a34a;
+  color: #fff;
+}
+
+.btn-green:hover {
+  background-color: #15803d;
+}
+
+.btn-gray {
+  background-color: #9ca3af;
+  color: #fff;
+}
+
+.btn-gray:hover {
+  background-color: #6b7280;
+}
+
+/* Кнопка "Создать профиль" */
+.btn-create-profile {
+  background-color: #3b82f6;
+  color: #fff;
+  padding: 0.5rem 1rem;
+}
+
+.btn-create-profile:hover {
+  background-color: #1d4ed8;
+}
+
+/* Кнопка "Изменить" специальность */
+.btn-edit {
+  background-color: #f59e0b;
+  color: #fff;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  margin-left: 0.5rem;
+}
+
+.btn-edit:hover {
+  background-color: #d97706;
+}
+
+/* Кнопка "Добавить навык" */
+.btn-add-skill {
+  background-color: #10b981;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  margin-top: 0.5rem;
+}
+
+.btn-add-skill:hover {
+  background-color: #059669;
+}
+
+/* Кнопки внутри карточек заявок */
+.btn-take,
+.btn-finish {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #fff;
+  transition: background-color 0.2s;
+}
+
+.btn-take {
+  background-color: #2563eb;
+}
+
+.btn-take:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-finish {
+  background-color: #16a34a;
+}
+
+.btn-finish:hover {
+  background-color: #15803d;
+}
+
+/* Отключенные кнопки */
+.btn-take.disabled,
+.btn-finish.disabled,
+.btn-gray.disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Список навыков */
+.skills-select {
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid #cbd5e1;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-height: 4rem;
+}
+
+.skills-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Секция добавления навыков */
+.add-skills-section {
+  margin-top: 1rem;
+}
+
+/* Мобильная адаптация для форм */
+@media (max-width: 768px) {
+  .btn-row {
+    flex-direction: column;
+  }
+}

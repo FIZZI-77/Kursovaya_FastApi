@@ -1,0 +1,387 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:15
+    container_name: common_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qwerty
+      POSTGRES_DB: servicedb
+    ports:
+    - 5432:5432
+    volumes:
+    - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U postgres -d servicedb
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+    - 6379:6379
+    volumes:
+    - redis_data:/data
+    command:
+    - redis-server
+    - --appendonly
+    - 'yes'
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    ports:
+    - 2181:2181
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafka
+    ports:
+    - 9092:9092
+    - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://:9092,PLAINTEXT_HOST://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+    - zookeeper
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - nc -z localhost 9092 || exit 1
+      interval: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: postgresql://postgres:qwerty@db:5432/servicedb?sslmode=disable
+    ports:
+    - 9187:9187
+    depends_on:
+    - db
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis-exporter
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+    - 9121:9121
+    depends_on:
+    - redis
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  kminion:
+    image: redpandadata/kminion:latest
+    container_name: kminion
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      METRICS_PORT: '8080'
+      KAFKA_TOPICS: user.events,request.events,auth.events
+    ports:
+    - 8080:8080
+    depends_on:
+      kafka:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+    - 9100:9100
+    volumes:
+    - /proc:/host/proc:ro
+    - /sys:/host/sys:ro
+    - /:/rootfs:ro
+    command:
+    - --path.procfs=/host/proc
+    - --path.rootfs=/rootfs
+    - --path.sysfs=/host/sys
+    - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  migrator:
+    build: ./migrator
+    container_name: migrator
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+    - ./Auth_Service/scheme:/migrations/auth
+    - ./User_Service/scheme:/migrations/user
+    - ./Request_Service/scheme:/migrations/req
+    environment:
+      GOOSE_DRIVER: postgres
+      GOOSE_DBSTRING: postgres://postgres:qwerty@db:5432/servicedb?sslmode=disable
+    command: "sh -c \"\n  echo 'Running migrations...' &&\n  goose -dir /migrations/auth\
+      \ up &&\n  goose -dir /migrations/user up && goose -dir /migrations/req up\n\
+      \"\n"
+  auth-service:
+    build: ./Auth_Service
+    container_name: auth_service
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_USERNAME: postgres
+      DB_PASSWORD: qwerty
+      DB_NAME: servicedb
+      REDIS_HOST: redis
+      KAFKA_BROKERS: kafka:9092
+      JWT_SALT: fsfjh2p9urhwpuenn
+    depends_on:
+      db:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+    - 8000:8000
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  profile-service:
+    build: ./User_Service
+    container_name: profile_service
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_USERNAME: postgres
+      DB_PASSWORD: qwerty
+      DB_NAME: servicedb
+      REDIS_HOST: redis
+      KAFKA_BROKERS: kafka:9092
+      JWT_SALT: fsfjh2p9urhwpuenn
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      migrator:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+    ports:
+    - 7000:7000
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  request-service:
+    build: ./Request_Service
+    container_name: request-service
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_USERNAME: postgres
+      DB_PASSWORD: qwerty
+      DB_NAME: servicedb
+      REDIS_HOST: redis
+      KAFKA_BROKERS: kafka:9092
+      JWT_SALT: fsfjh2p9urhwpuenn
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      migrator:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+    ports:
+    - 3000:3000
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  notification-service:
+    build: ./Notification_Service
+    container_name: notification-service
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPICS: user.events,request.events,auth.events
+      WS_PORT: 5000
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+    - 5000:5000
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  swagger-auth:
+    image: swaggerapi/swagger-ui
+    ports:
+    - 8081:8080
+    volumes:
+    - ./Auth_Service/openapi.yaml:/openapi.yaml
+    environment:
+      SWAGGER_JSON: /openapi.yaml
+    depends_on:
+    - auth-service
+  swagger-profile:
+    image: swaggerapi/swagger-ui
+    ports:
+    - 8082:8080
+    volumes:
+    - ./User_Service/openapi.yaml:/openapi.yaml
+    environment:
+      SWAGGER_JSON: /openapi.yaml
+    depends_on:
+    - profile-service
+  swagger-request:
+    image: swaggerapi/swagger-ui
+    ports:
+    - 8083:8080
+    volumes:
+    - ./Request_Service/openapi.yaml:/openapi.yaml
+    environment:
+      SWAGGER_JSON: /openapi.yaml
+    depends_on:
+    - request-service
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+    - 1025:1025
+    - 8025:8025
+    depends_on:
+    - auth-service
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    ports:
+    - 9080:9080
+    volumes:
+    - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    - /var/run/docker.sock:/var/run/docker.sock
+    - ./promtail-config.yaml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    privileged: true
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+    - 3100:3100
+    volumes:
+    - ./loki-config.yaml:/etc/loki/local-config.yaml
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+    - 9090:9090
+    volumes:
+    - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    - prometheusdata:/prometheus
+    depends_on:
+    - postgres-exporter
+    - redis-exporter
+    - kminion
+    - node-exporter
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+    - 3030:3000
+    environment:
+    - GF_SECURITY_ADMIN_USER=admin
+    - GF_SECURITY_ADMIN_PASSWORD=admin
+    - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+    - ./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    - ./grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+    - ./grafana/dashboards:/etc/grafana/dashboards
+    - grafanadata:/var/lib/grafana
+    depends_on:
+    - prometheus
+    - loki
+  frontend:
+    build:
+      context: ./front_for_kurs
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+    - 5173:80
+    depends_on:
+    - auth-service
+    - profile-service
+    - request-service
+    - notification-service
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+    - 80:80
+    - 443:443
+    volumes:
+    - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    - ./nginx/logs:/var/log/nginx
+    - ./nginx/ssl:/etc/nginx/ssl:ro
+    - nginx_cache:/var/cache/nginx
+    - ./front_for_kurs/dist:/usr/share/nginx/html:ro
+    depends_on:
+    - auth-service
+    - profile-service
+    - request-service
+    - notification-service
+    - frontend
+    extra_hosts:
+    - host.docker.internal:host-gateway
+    networks:
+    - default
+    logging:
+      driver: json-file
+      options:
+        tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
+volumes:
+  grafanadata: null
+  prometheusdata: null
+  postgres_data: null
+  redis_data: null
+  swagger-ui: null
+  mailhog: null
+  nginx_cache: null

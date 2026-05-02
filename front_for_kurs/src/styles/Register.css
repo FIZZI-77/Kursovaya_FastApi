@@ -1,0 +1,132 @@
+/* Контейнер со светлым плавным градиентом */
+.register-background {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 2rem;
+  font-family: 'Poppins', sans-serif;
+
+  position: relative;
+  overflow: hidden;
+}
+
+/* Карточка */
+.register-card {
+  width: 420px;
+  padding: 3rem 2.5rem;
+  background: #ffffff;
+  border-radius: 2rem;
+
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+
+  position: relative;
+  z-index: 10;
+
+  animation: cardFade 0.6s ease;
+}
+
+@keyframes cardFade {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Заголовок */
+.register-card h2 {
+  text-align: center;
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+/* Инпуты */
+.register-card input {
+  width: 100%;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1.2rem;
+
+  border-radius: 1rem;
+  border: 1px solid #ddd;
+  background: #fafafa;
+
+  font-size: 1rem;
+  transition: all 0.25s ease;
+}
+
+.register-card input:focus {
+  background: #fff;
+  border-color: #6a11cb;
+  box-shadow: 0 0 12px rgba(106, 17, 203, 0.25);
+  outline: none;
+}
+
+/* Кнопка */
+.register-card button {
+  width: 100%;
+  padding: 1rem;
+
+  font-size: 1.15rem;
+  font-weight: 600;
+
+  color: #fff;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  border: none;
+  border-radius: 1rem;
+
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.register-card button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+}
+
+/* Текст-ссылка */
+.login-text {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #444;
+}
+
+.login-text a {
+  color: #2575fc;
+  font-weight: 600;
+}
+
+.login-text a:hover {
+  text-decoration: underline;
+}
+
+/* Декоративные круги */
+.register-bg-circle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.22;
+  animation: pulse 6s infinite;
+}
+
+.circle-a {
+  width: 230px;
+  height: 230px;
+  background: #6a11cb;
+  top: -70px;
+  left: -70px;
+}
+
+.circle-b {
+  width: 320px;
+  height: 320px;
+  background: #2575fc;
+  bottom: -120px;
+  right: -120px;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.22; }
+  50% { transform: scale(1.1); opacity: 0.27; }
+}

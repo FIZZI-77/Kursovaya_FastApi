@@ -1,0 +1,43 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # Ваши сервисы приложения
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['auth-service:8000']
+    metrics_path: /metrics
+    scrape_interval: 5s
+
+  - job_name: 'profile-service'
+    static_configs:
+      - targets: ['profile-service:7000']
+    metrics_path: /metrics
+    scrape_interval: 5s
+
+  - job_name: 'request-service'
+    static_configs:
+      - targets: ['request-service:3000']
+    metrics_path: /metrics
+    scrape_interval: 5s
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: [ 'localhost:9090' ]
+
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: [ 'postgres-exporter:9187' ]
+
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: [ 'redis-exporter:9121' ]
+
+  - job_name: 'kminion'
+    static_configs:
+      - targets: [ 'kminion:8080' ]
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: [ 'node-exporter:9100' ]

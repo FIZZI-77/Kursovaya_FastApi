@@ -1,0 +1,128 @@
+/* Основной фон и отступ от navbar */
+.main-content {
+  margin-top: 5rem; /* отступ от navbar */
+  padding: 2rem;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  min-height: calc(100vh - 5rem);
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Карточка контента */
+.admin-card {
+  background: #fff;
+  border-radius: 2rem;
+  padding: 2rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+/* Заголовок */
+.admin-card h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: #222;
+}
+
+/* Формы */
+.admin-card form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.admin-card form input,
+.admin-card form select {
+  padding: 0.8rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid #ddd;
+  font-size: 1rem;
+  flex: 1;
+  transition: all 0.3s ease;
+}
+
+.admin-card form input:focus,
+.admin-card form select:focus {
+  outline: none;
+  border-color: #6a11cb;
+  box-shadow: 0 0 10px rgba(106, 17, 203, 0.2);
+}
+
+.admin-card form button {
+  padding: 0.8rem 1.5rem;
+  border-radius: 1rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  color: #fff;
+}
+
+.admin-card form button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Таблица */
+.admin-card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-card table th,
+.admin-card table td {
+  padding: 0.8rem;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+.admin-card table th {
+  font-weight: 600;
+  color: #555;
+}
+
+/* Действия */
+.user-actions button {
+  margin-right: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.user-actions .ban { background: #e74c3c; }
+.user-actions .unban { background: #f1c40f; color: #222; }
+.user-actions .assign { background: #3498db; }
+.user-actions .delete { background: #7f8c8d; }
+
+/* Пагинация */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+}
+
+.pagination button {
+  padding: 0.6rem 1.2rem;
+  border-radius: 1rem;
+  border: none;
+  background: #bdc3c7;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: #95a5a6;
+}

@@ -1,0 +1,535 @@
+openapi: 3.0.3
+info:
+  title: Request Service API
+  version: 1.0.1
+  description: API для управления запросами пользователей, воркеров и админов
+servers:
+  - url: http://localhost:3000
+    description: Локальный сервер
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Status:
+      type: string
+      enum:
+        - new
+        - accepted
+        - in_progress
+        - done
+        - archived
+    Role:
+      type: string
+      enum:
+        - user
+        - contractor
+        - admin
+        - superadmin
+    Request:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        worker_id:
+          type: string
+          format: uuid
+          nullable: true
+        category:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high]
+        status:
+          $ref: '#/components/schemas/Status'
+        photos:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    RequestSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        category:
+          type: string
+        address:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high]
+        status:
+          $ref: '#/components/schemas/Status'
+        created_at:
+          type: string
+          format: date-time
+    PaginationInput:
+      type: object
+      properties:
+        page:
+          type: integer
+          default: 1
+        page_size:
+          type: integer
+          default: 10
+        filters:
+          $ref: '#/components/schemas/RequestFilters'
+    RequestFilters:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/Status'
+        worker_id:
+          type: string
+          format: uuid
+        date_from:
+          type: string
+          format: date
+        date_to:
+          type: string
+          format: date
+        search:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high]
+        is_archived:
+          type: boolean
+    IDRequestInput:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+      required:
+        - request_id
+    AssignWorkerToRequest:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        worker_id:
+          type: string
+          format: uuid
+      required:
+        - request_id
+    AddPhotosRequest:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        photo_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+      required:
+        - request_id
+        - photo_urls
+    RemovePhotosRequest:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        photo_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+      required:
+        - request_id
+        - photo_urls
+
+security:
+  - bearerAuth: []
+
+paths:
+  /:
+    get:
+      summary: Проверка работы API
+      responses:
+        '200':
+          description: API работает
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  # User endpoints
+  /user/requests:
+    post:
+      summary: Создать новый запрос
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Request'
+      responses:
+        '200':
+          description: ID созданного запроса
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+
+  /user/requests/list:
+    get:
+      summary: Получить список запросов пользователя
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [new, accepted, in_progress, done, archived]
+      responses:
+        '200':
+          description: Список запросов пользователя
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  page:
+                    type: integer
+                  pageSize:
+                    type: integer
+                  total:
+                    type: integer
+                  requests:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RequestSummary'
+
+  /user/requests/cancel:
+    delete:
+      summary: Отменить запрос
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IDRequestInput'
+      responses:
+        '200':
+          description: Сообщение об успешной отмене
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /user/requests/photo:
+    post:
+      summary: Добавить фото к запросу
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPhotosRequest'
+      responses:
+        '200':
+          description: Фото успешно добавлено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+    delete:
+      summary: Удалить фото из запроса
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemovePhotosRequest'
+      responses:
+        '200':
+          description: Фото успешно удалено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /user/request:
+    get:
+      summary: Получить запрос по ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: request_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+      responses:
+        '200':
+          description: Данные запроса
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  request:
+                    $ref: '#/components/schemas/Request'
+
+  # Worker endpoints
+  /worker/requests/available:
+    get:
+      summary: Получить доступные запросы для воркера
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Список доступных запросов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RequestSummary'
+
+  /worker/requests/accept:
+    patch:
+      summary: Взять запрос в работу
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IDRequestInput'
+      responses:
+        '200':
+          description: Запрос принят
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: string
+
+  /worker/requests/done:
+    patch:
+      summary: Пометить запрос как выполненный
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IDRequestInput'
+      responses:
+        '200':
+          description: Запрос завершён
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: string
+
+  /worker/requests/list:
+    get:
+      summary: Получить список запросов воркера
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Список запросов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RequestSummary'
+
+  # Admin endpoints
+  /admin/requests/list:
+    post:
+      summary: Получить список всех запросов (админ)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaginationInput'
+      responses:
+        '200':
+          description: Список всех запросов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RequestSummary'
+
+  /admin/requests/assign:
+    patch:
+      summary: Назначить воркера на запрос
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignWorkerToRequest'
+      responses:
+        '200':
+          description: Воркера назначено успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /admin/requests/archive:
+    patch:
+      summary: Архивировать запрос
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IDRequestInput'
+      responses:
+        '200':
+          description: Запрос успешно архивирован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /admin/requests/delete:
+    delete:
+      summary: Удалить запрос
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IDRequestInput'
+      responses:
+        '200':
+          description: Запрос успешно удалён
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
